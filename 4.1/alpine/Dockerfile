@@ -9,21 +9,19 @@ RUN set -eux; \
 	apk add --no-cache \
 		bash \
 		ca-certificates \
-		su-exec \
 		tini \
 		tzdata \
 		wget \
-		\
 		bzr \
 		git \
 		mercurial \
+		su-exec \
 		openssh-client \
 		subversion \
-		\
 # https://github.com/docker-library/redmine/issues/132
 # (without "ghostscript-fonts" we get "Magick::ImageMagickError (non-conforming drawing primitive definition `text' @ error/draw.c/DrawImage/3265):")
 		ghostscript-fonts \
-		imagemagick6 \
+		imagemagick \
 	;
 
 ENV RAILS_ENV production
@@ -60,7 +58,6 @@ RUN set -eux; \
 		coreutils \
 		freetds-dev \
 		gcc \
-		imagemagick6-dev \
 		make \
 		mariadb-dev \
 		musl-dev \
@@ -71,6 +68,9 @@ RUN set -eux; \
 		zlib-dev \
 	; \
 	\
+# add 'rufus-scheduler' to Gemfile
+	echo "gem 'rufus-scheduler'" >> Gemfile; \
+# adding end
 	su-exec redmine bundle install --jobs "$(nproc)" --without development test; \
 	for adapter in mysql2 postgresql sqlserver sqlite3; do \
 		echo "$RAILS_ENV:" > ./config/database.yml; \
@@ -97,9 +97,9 @@ RUN set -eux; \
 	apk del --no-network .build-deps
 
 VOLUME /usr/src/redmine/files
-
-COPY docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
-
+WORKDIR /usr/src/redmine
+RUN wget -O docker-entrypoint.sh "https://raw.githubusercontent.com/gainskills/redmine/master/4.1/alpine/docker-entrypoint.sh"
+RUN chmod +x ./docker-entrypoint.sh
+ENTRYPOINT ["./docker-entrypoint.sh"]
 EXPOSE 3000
 CMD ["rails", "server", "-b", "0.0.0.0"]
